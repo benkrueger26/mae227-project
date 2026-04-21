@@ -1,5 +1,6 @@
 from src.environment import GridEnvironment, RectObstacle
 from src.visualize import EnvironmentVisualizer
+from src.astar import astar_search, downsample_collinear
 
 def main():
 
@@ -41,7 +42,20 @@ def main():
                 row_chars.append('.')
         print(' '.join(row_chars))
 
+
+   
+    path = astar_search(env)
+    if path is None:
+        print("No path found!")
+    else:
+       print(f"A* path: {len(path)} waypoints")
+       waypoints = downsample_collinear(path)
+       print(f"After downsampling: {len(waypoints)} waypoints")
+       print(f"Waypoints: {waypoints}")
+
     viz = EnvironmentVisualizer(env)
     viz.show()
+
+    
 if __name__ == "__main__":
     main()
