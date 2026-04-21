@@ -15,7 +15,9 @@ class EnvironmentVisualizer:
         self.layers = {
             'Obstacles': [],
             'Start/Goal': [],
-            'Gridlines': []
+            'Gridlines': [],
+            'A* Path': [],
+            'Waypoints': []
         }
     
     def _draw_obstacles(self) -> None:
@@ -86,3 +88,26 @@ class EnvironmentVisualizer:
         self.check_buttons.on_clicked(self._on_toggle)
 
         plt.show()
+
+    def draw_astar_path(self,path: list[tuple[int, int]]) -> None:
+        if not path:
+            return
+        
+        xs = [p[0] + 0.5 for p in path]
+        ys = [p[1] + 0.5 for p in path]
+
+        (line,) = self.ax.plot(
+            xs, ys, color='blue', linewidth = 1.5, alpha = 0.7, label = 'A* Path'
+        )
+        self.layers['A* Path'].append(line)
+
+    def draw_waypoints(self,waypoints: list[tuple[int,int]]) -> None:
+        if not waypoints:
+            return
+        xs = [p[0] + 0.5 for p in waypoints]
+        ys = [p[1] + 0.5 for p in waypoints]
+
+        (line,) = self.ax.plot(
+            xs, ys, color='orange', marker = 'o', linestyle = '--', linewidth = 1, alpha = 0.8, label = 'Waypoints'
+        )
+        self.layers['Waypoints'].append(line)

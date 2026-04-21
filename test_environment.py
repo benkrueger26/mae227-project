@@ -20,8 +20,9 @@ def main():
 
 
     # Set start and goal in free space
-    env.set_start(5,4)
-    env.set_goal(9,1)
+    """x, y are continuous world coordinates. To target the center of cell (i, j), pass (i+0.5, j+0.5)."""
+    env.set_start(0+0.5,1+0.5)
+    env.set_goal(9+0.5,7+0.5)
 
     #Print grid as ascii
     grid = env.occupancy_grid
@@ -54,6 +55,10 @@ def main():
        print(f"Waypoints: {waypoints}")
 
     viz = EnvironmentVisualizer(env)
+
+    if path:
+        viz.draw_astar_path(path)
+        viz.draw_waypoints(waypoints)
     viz.show()
 
     
