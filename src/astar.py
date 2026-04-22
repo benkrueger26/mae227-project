@@ -97,3 +97,39 @@ def downsample_collinear(path: list[tuple[int, int]]) -> list[tuple[int, int]]:
 
     result.append(path[-1])
     return result
+
+def resample_by_spacing(
+    waypoints: list[tuple[float, float]],
+    max_spacing: float = 1.5,
+) -> list[tuple[float, float]]:
+    """
+    Insert linearly-interpolated intermediate points so no two adjacent
+    waypoints are more than max_spacing apart in Euclidean distance.
+
+    Preserves all input waypoints (especially corners) and only adds new
+    points between them. Returns a denser waypoint list suitable as input
+    to a trajectory smoother.
+    """
+    if len(waypoints) < 2:
+        return waypoints[:]
+
+    result = [waypoints[0]]
+    for i in range(len(waypoints) - 1):
+        p0 = waypoints[i]
+        p1 = waypoints[i + 1]
+
+        dx = p1[0] - p0[0]
+        dy = p1[1] - p0[1]
+        segment_length = math.hypot(dx, dy)
+
+        # number of equal sub-segments needed so each is <= max_spacing
+        n_segments = max(1, math.ceil(segment_length / max_spacing))
+
+        # insert n_segments - 1 interior points, then the endpoint
+        for k in range(1, n_segments):
+            t = k / n_segments
+            interp = (p0[0] + t * dx, p0[1] + t * dy)
+            result.append(interp)
+        result.append(p1)
+
+    return result

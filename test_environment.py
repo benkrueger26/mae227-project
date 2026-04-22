@@ -1,6 +1,6 @@
 from src.environment import GridEnvironment, RectObstacle
 from src.visualize import EnvironmentVisualizer
-from src.astar import astar_search, downsample_collinear
+from src.astar import astar_search, downsample_collinear, resample_by_spacing
 
 def main():
 
@@ -84,12 +84,14 @@ def main():
        waypoints = downsample_collinear(path)
        print(f"After downsampling: {len(waypoints)} waypoints")
        print(f"Waypoints: {waypoints}")
+       waypoints_dense = resample_by_spacing(waypoints, max_spacing=1.5)
+       print(f"After resampling: {len(waypoints_dense)} waypoints")    
 
     viz = EnvironmentVisualizer(env)
 
     if path:
         viz.draw_astar_path(path)
-        viz.draw_waypoints(waypoints)
+        viz.draw_waypoints(waypoints_dense)
     viz.show()
 
     
