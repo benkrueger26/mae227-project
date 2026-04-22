@@ -17,7 +17,8 @@ class EnvironmentVisualizer:
             'Start/Goal': [],
             'Gridlines': [],
             'A* Path': [],
-            'Waypoints': []
+            'Waypoints': [],
+            'Bubbles': []
         }
     
     def _draw_obstacles(self) -> None:
@@ -111,3 +112,20 @@ class EnvironmentVisualizer:
             xs, ys, color='orange', marker = 'o', linestyle = '--', linewidth = 1, alpha = 0.8, label = 'Waypoints'
         )
         self.layers['Waypoints'].append(line)
+
+    def draw_bubbles(self, bubbles: list[tuple[float, float, float]]) -> None:
+        """Draw safe circular bubbles around each waypoint"""
+        from matplotlib.patches import Circle
+        
+        for cx, cy, r in bubbles:
+            circle = Circle(
+                (cx, cy),
+                radius = r,
+                fill = True,
+                facecolor = 'cyan',
+                edgecolor = 'blue',
+                alpha = 0.15,
+                linewidth = 0.8
+            )
+            self.ax.add_patch(circle)
+            self.layers['Bubbles'].append(circle)

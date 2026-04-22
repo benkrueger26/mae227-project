@@ -1,6 +1,8 @@
 from src.environment import GridEnvironment, RectObstacle
 from src.visualize import EnvironmentVisualizer
 from src.astar import astar_search, downsample_collinear, resample_by_spacing
+from src.bubbles import compute_distance_field, compute_bubbles
+
 
 def main():
 
@@ -87,12 +89,61 @@ def main():
        waypoints_dense = resample_by_spacing(waypoints, max_spacing=1.5)
        print(f"After resampling: {len(waypoints_dense)} waypoints")    
 
+    # Shift waypoints from cell-index coordinates to world (cell-center) coordinates.
+    # This aligns with the visualizer's +0.5 render convention and with the
+    # distance field's cell-center distance measurements.
+    waypoints_world = [(x + 0.5, y + 0.5) for x, y in waypoints_dense]
+
+    # Generate the distance field and bubbles
+    df = compute_distance_field(env)
+    bubbles = compute_bubbles(waypoints_world, env)
+    
+    
+
+    print("\n--- Safety Bubbles ---")
+    for i, (cx, cy, r) in enumerate(bubbles):
+        print(f"Waypoint {i} at ({cx}, {cy}) -> Radius: {r:.2f}")
+
+    # Diagnostic: check a specific waypoint against the grid
+    print("\n--- Bubble Diagnostic ---")
+    print(f"Distance field shape: {df.shape}")
+    print(f"Grid shape: {env.occupancy_grid.shape}")
+
+    # Check the first few waypoints
+    for i, ((wx, wy), (bx, by, br)) in enumerate(zip(waypoints_world, bubbles)):
+        # Sample the raw distance field at this waypoint
+        from scipy.ndimage import map_coordinates
+        import numpy as np
+        raw_dist = map_coordinates(df, np.array([[wy], [wx]]), order=1, mode='nearest')[0]
+        
+        # Find the nearest obstacle cell by brute force
+        obs_ys, obs_xs = np.where(env.occupancy_grid)
+        if len(obs_xs) > 0:
+            # Distance from waypoint to obstacle cell CENTERS
+            dists_to_centers = np.sqrt((obs_xs + 0.5 - wx)**2 + (obs_ys + 0.5 - wy)**2)
+            # Distance from waypoint to obstacle cell EDGES (closest point on cell square)
+            dx = np.maximum(0, np.abs(wx - (obs_xs + 0.5)) - 0.5)
+            dy = np.maximum(0, np.abs(wy - (obs_ys + 0.5)) - 0.5)
+            dists_to_edges = np.sqrt(dx**2 + dy**2)
+            
+            print(f"WP {i}: world=({wx:.2f},{wy:.2f}) "
+                f"df_sample={raw_dist:.3f} "
+                f"true_center_dist={dists_to_centers.min():.3f} "
+                f"true_edge_dist={dists_to_edges.min():.3f} "
+                f"bubble_r={br:.3f}")
+        
+        if i >= 5:
+            break
+
     viz = EnvironmentVisualizer(env)
 
     if path:
         viz.draw_astar_path(path)
         viz.draw_waypoints(waypoints_dense)
+        viz.draw_bubbles(bubbles)
+
     viz.show()
+
 
     
 if __name__ == "__main__":
