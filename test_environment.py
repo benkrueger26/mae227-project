@@ -2,6 +2,9 @@ from src.environment import GridEnvironment, RectObstacle
 from src.visualize import EnvironmentVisualizer
 from src.astar import astar_search, downsample_collinear, resample_by_spacing
 from src.bubbles import compute_distance_field, compute_bubbles
+from src.optimizer import optimize_path
+import numpy as np
+from scipy.ndimage import map_coordinates
 
 
 def main():
@@ -98,7 +101,8 @@ def main():
     df = compute_distance_field(env)
     bubbles = compute_bubbles(waypoints_world, env)
     
-    
+    q = np.asarray(waypoints_world, dtype=float)
+    P_opt = optimize_path(q, bubbles, lambda_reg=1.0, d_max=1.5)
 
     print("\n--- Safety Bubbles ---")
     for i, (cx, cy, r) in enumerate(bubbles):
@@ -112,8 +116,7 @@ def main():
     # Check the first few waypoints
     for i, ((wx, wy), (bx, by, br)) in enumerate(zip(waypoints_world, bubbles)):
         # Sample the raw distance field at this waypoint
-        from scipy.ndimage import map_coordinates
-        import numpy as np
+        
         raw_dist = map_coordinates(df, np.array([[wy], [wx]]), order=1, mode='nearest')[0]
         
         # Find the nearest obstacle cell by brute force
@@ -141,7 +144,7 @@ def main():
         viz.draw_astar_path(path)
         viz.draw_waypoints(waypoints_dense)
         viz.draw_bubbles(bubbles)
-
+        viz.draw_optimized_path(P_opt)
     viz.show()
 
 

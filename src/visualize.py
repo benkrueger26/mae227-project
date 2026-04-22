@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.widgets import CheckButtons
 from .environment import GridEnvironment
+import numpy as np
 
 
 class EnvironmentVisualizer:
@@ -129,3 +130,16 @@ class EnvironmentVisualizer:
             )
             self.ax.add_patch(circle)
             self.layers['Bubbles'].append(circle)
+
+    def draw_optimized_path(self, P_opt, color='magenta', linewidth=2.5, label='Optimized path'):
+        """Draw the SOCP-optimized smoothed path as a line."""
+        P_opt = np.asarray(P_opt)
+        self.ax.plot(
+            P_opt[:, 0],
+            P_opt[:, 1],
+            '-',
+            color=color,
+            linewidth=linewidth,
+            label=label,
+            zorder=5,
+        )
