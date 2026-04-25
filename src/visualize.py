@@ -19,7 +19,8 @@ class EnvironmentVisualizer:
             'Gridlines': [],
             'A* Path': [],
             'Waypoints': [],
-            'Bubbles': []
+            'Bubbles': [],
+            'Optimized Path': []
         }
     
     def _draw_obstacles(self) -> None:
@@ -134,7 +135,7 @@ class EnvironmentVisualizer:
     def draw_optimized_path(self, P_opt, color='magenta', linewidth=2.5, label='Optimized path'):
         """Draw the SOCP-optimized smoothed path as a line."""
         P_opt = np.asarray(P_opt)
-        self.ax.plot(
+        (line,) = self.ax.plot(
             P_opt[:, 0],
             P_opt[:, 1],
             '-',
@@ -143,3 +144,4 @@ class EnvironmentVisualizer:
             label=label,
             zorder=5,
         )
+        self.layers['Optimized Path'].append(line)

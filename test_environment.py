@@ -7,25 +7,167 @@ import numpy as np
 from scipy.ndimage import map_coordinates
 
 
-def main():
+# def main():
 
-    #Initialize the environment
-    env = GridEnvironment(width = 20, height = 20)
+#     #Initialize the environment
+#     env = GridEnvironment(width = 20, height = 20)
     
-    # Add obstalces:
-    #small square
-    # env.add_obstacle(RectObstacle(x_start = 2, y_start = 2, width = 2, height = 2))
+#     # Add obstalces:
+#     #small square
+#     # env.add_obstacle(RectObstacle(x_start = 2, y_start = 2, width = 2, height = 2))
 
-    # #tallthin rectangle
-    # env.add_obstacle(RectObstacle(x_start = 6, y_start = 1, width = 1, height =5))
+#     # #tallthin rectangle
+#     # env.add_obstacle(RectObstacle(x_start = 6, y_start = 1, width = 1, height =5))
 
-    # env.add_obstacle(RectObstacle(x_start = 1, y_start = 5, width = 4, height = 2))
-    # env.add_obstacle(RectObstacle(x_start = 18, y_start = 2, width = 2, height = 6))
-    # env.add_obstacle(RectObstacle(x_start = 0, y_start = 10, width = 3, height = 1))
-    # env.add_obstacle(RectObstacle(x_start = 10, y_start = 9, width = 5, height = 7))
+#     # env.add_obstacle(RectObstacle(x_start = 1, y_start = 5, width = 4, height = 2))
+#     # env.add_obstacle(RectObstacle(x_start = 18, y_start = 2, width = 2, height = 6))
+#     # env.add_obstacle(RectObstacle(x_start = 0, y_start = 10, width = 3, height = 1))
+#     # env.add_obstacle(RectObstacle(x_start = 10, y_start = 9, width = 5, height = 7))
 
-    env = GridEnvironment(width=20, height=20)
+#     env = GridEnvironment(width=20, height=20)
 
+#     env = GridEnvironment(width=20, height=20)
+
+#     # Bottom-left: a zigzag corridor
+#     env.add_obstacle(RectObstacle(x_start=2,  y_start=0,  width=2, height=5))
+#     env.add_obstacle(RectObstacle(x_start=5,  y_start=3,  width=2, height=5))
+
+#     # Middle: horizontal wall with a narrow gap, forces a specific crossing
+#     env.add_obstacle(RectObstacle(x_start=0,  y_start=9,  width=8, height=2))
+#     env.add_obstacle(RectObstacle(x_start=10, y_start=9,  width=10, height=2))
+#     # Gap is between x=8 and x=10
+
+#     # Upper-middle: a diagonal chain of pillars that forces sinuous motion
+#     env.add_obstacle(RectObstacle(x_start=3,  y_start=12, width=2, height=2))
+#     env.add_obstacle(RectObstacle(x_start=7,  y_start=14, width=2, height=2))
+#     env.add_obstacle(RectObstacle(x_start=11, y_start=16, width=2, height=2))
+
+#     # Upper-right: a hook that the path has to curve around
+#     env.add_obstacle(RectObstacle(x_start=15, y_start=13, width=4, height=2))
+#     env.add_obstacle(RectObstacle(x_start=15, y_start=15, width=2, height=4))
+
+#     # Right side below the wall: a block forcing the path to stay left
+#     env.add_obstacle(RectObstacle(x_start=14, y_start=3,  width=3, height=4))
+
+    
+#     env.set_start(0.5, 0.5)
+#     env.set_goal(19.5, 19.5)
+
+
+
+#     # Set start and goal in free space
+#     """x, y are continuous world coordinates. To target the center of cell (i, j), pass (i+0.5, j+0.5)."""
+#     env.set_start(0+0.5,1+0.5)
+#     env.set_goal(19+0.5,17+0.5)
+
+#     #Print grid as ascii
+#     grid = env.occupancy_grid
+#     start_x,start_y = int(env.start[0]), int(env.start[1])
+#     goal_x,goal_y = int(env.goal[0]), int(env.goal[1])
+    
+#     print("--- Grid Environment ASCII Test ---")
+#     for y in range(env.height -1, -1, -1):
+#         row_chars = []
+#         for x in range(env.width):
+#             if (x,y) == (start_x, start_y):
+#                 row_chars.append('S')
+#             elif (x,y) == (goal_x, goal_y):
+#                 row_chars.append('G')
+#             elif grid[y,x]:
+#                 row_chars.append('#')
+#             else:
+#                 row_chars.append('.')
+#         print(' '.join(row_chars))
+
+
+   
+#     path = astar_search(env)
+#     if path is None:
+#         print("No path found!")
+#     else:
+#        print(f"A* path: {len(path)} waypoints")
+#        waypoints = downsample_collinear(path)
+#        print(f"After downsampling: {len(waypoints)} waypoints")
+#        print(f"Waypoints: {waypoints}")
+#        waypoints_dense = resample_by_spacing(waypoints, max_spacing=0.75)
+#        print(f"After resampling: {len(waypoints_dense)} waypoints")    
+
+#     # Shift waypoints from cell-index coordinates to world (cell-center) coordinates.
+#     # This aligns with the visualizer's +0.5 render convention and with the
+#     # distance field's cell-center distance measurements.
+#     waypoints_world = [(x + 0.5, y + 0.5) for x, y in waypoints_dense]
+
+#     # Generate the distance field and bubbles
+#     df = compute_distance_field(env)
+#     bubbles = compute_bubbles(waypoints_world, env)
+    
+#     q = np.asarray(waypoints_world, dtype=float)
+#     P_opt = optimize_path(q, bubbles, lambda_reg=0.01, d_max=1.5)
+
+#     print("\n--- Safety Bubbles ---")
+#     for i, (cx, cy, r) in enumerate(bubbles):
+#         print(f"Waypoint {i} at ({cx}, {cy}) -> Radius: {r:.2f}")
+
+#     # Diagnostic: check a specific waypoint against the grid
+#     print("\n--- Bubble Diagnostic ---")
+#     print(f"Distance field shape: {df.shape}")
+#     print(f"Grid shape: {env.occupancy_grid.shape}")
+
+#     # Check the first few waypoints
+#     for i, ((wx, wy), (bx, by, br)) in enumerate(zip(waypoints_world, bubbles)):
+#         # Sample the raw distance field at this waypoint
+        
+#         raw_dist = map_coordinates(df, np.array([[wy], [wx]]), order=1, mode='nearest')[0]
+        
+#         # Find the nearest obstacle cell by brute force
+#         obs_ys, obs_xs = np.where(env.occupancy_grid)
+#         if len(obs_xs) > 0:
+#             # Distance from waypoint to obstacle cell CENTERS
+#             dists_to_centers = np.sqrt((obs_xs + 0.5 - wx)**2 + (obs_ys + 0.5 - wy)**2)
+#             # Distance from waypoint to obstacle cell EDGES (closest point on cell square)
+#             dx = np.maximum(0, np.abs(wx - (obs_xs + 0.5)) - 0.5)
+#             dy = np.maximum(0, np.abs(wy - (obs_ys + 0.5)) - 0.5)
+#             dists_to_edges = np.sqrt(dx**2 + dy**2)
+            
+#             print(f"WP {i}: world=({wx:.2f},{wy:.2f}) "
+#                 f"df_sample={raw_dist:.3f} "
+#                 f"true_center_dist={dists_to_centers.min():.3f} "
+#                 f"true_edge_dist={dists_to_edges.min():.3f} "
+#                 f"bubble_r={br:.3f}")
+        
+#         if i >= 5:
+#             break
+
+#     viz = EnvironmentVisualizer(env)
+
+#     if path:
+#         viz.draw_astar_path(path)
+#         viz.draw_waypoints(waypoints_dense)
+#         viz.draw_bubbles(bubbles)
+#         viz.draw_optimized_path(P_opt)
+#     viz.show()
+
+
+    
+# if __name__ == "__main__":
+#     main()
+
+def calculate_path_length(path_points):
+    """Calculates the total Euclidean distance of a sequence of 2D points."""
+    if path_points is None or len(path_points) < 2:
+        return 0.0
+    
+    # Convert to numpy array (handles both lists of tuples and existing ndarrays)
+    pts = np.asarray(path_points, dtype=float)
+    
+    # Calculate the vector differences between consecutive points
+    diffs = np.diff(pts, axis=0)
+    
+    # Calculate the Euclidean length (norm) of each vector segment and sum them up
+    return np.sum(np.linalg.norm(diffs, axis=1))
+
+def main():
+    # Initialize the environment
     env = GridEnvironment(width=20, height=20)
 
     # Bottom-left: a zigzag corridor
@@ -49,21 +191,15 @@ def main():
     # Right side below the wall: a block forcing the path to stay left
     env.add_obstacle(RectObstacle(x_start=14, y_start=3,  width=3, height=4))
 
-    
-    env.set_start(0.5, 0.5)
-    env.set_goal(19.5, 19.5)
-
-
-
     # Set start and goal in free space
-    """x, y are continuous world coordinates. To target the center of cell (i, j), pass (i+0.5, j+0.5)."""
-    env.set_start(0+0.5,1+0.5)
-    env.set_goal(19+0.5,17+0.5)
+    # x, y are continuous world coordinates. To target the center of cell (i, j), pass (i+0.5, j+0.5).
+    env.set_start(0+0.5, 1+0.5)
+    env.set_goal(19+0.5, 17+0.5)
 
-    #Print grid as ascii
+    # Print grid as ascii
     grid = env.occupancy_grid
-    start_x,start_y = int(env.start[0]), int(env.start[1])
-    goal_x,goal_y = int(env.goal[0]), int(env.goal[1])
+    start_x, start_y = int(env.start[0]), int(env.start[1])
+    goal_x, goal_y = int(env.goal[0]), int(env.goal[1])
     
     print("--- Grid Environment ASCII Test ---")
     for y in range(env.height -1, -1, -1):
@@ -79,75 +215,100 @@ def main():
                 row_chars.append('.')
         print(' '.join(row_chars))
 
-
-   
     path = astar_search(env)
     if path is None:
         print("No path found!")
-    else:
-       print(f"A* path: {len(path)} waypoints")
-       waypoints = downsample_collinear(path)
-       print(f"After downsampling: {len(waypoints)} waypoints")
-       print(f"Waypoints: {waypoints}")
-       waypoints_dense = resample_by_spacing(waypoints, max_spacing=1.5)
-       print(f"After resampling: {len(waypoints_dense)} waypoints")    
+        return  # Exit early if no path
 
-    # Shift waypoints from cell-index coordinates to world (cell-center) coordinates.
-    # This aligns with the visualizer's +0.5 render convention and with the
-    # distance field's cell-center distance measurements.
-    waypoints_world = [(x + 0.5, y + 0.5) for x, y in waypoints_dense]
+    print(f"A* path: {len(path)} waypoints")
+    waypoints = downsample_collinear(path)
+    print(f"After downsampling: {len(waypoints)} waypoints")
 
-    # Generate the distance field and bubbles
+    # --- BRANCHING FOR VISUALIZATION VS OPTIMIZATION ---
+
+    # 1. SPARSE waypoints (for clean visualization)
+    waypoints_sparse = resample_by_spacing(waypoints, max_spacing=1.5)
+    print(f"Sparse waypoints for viz: {len(waypoints_sparse)}")
+
+    # 2. DENSE waypoints (for continuous safety tube and smooth optimization)
+    waypoints_dense = resample_by_spacing(waypoints, max_spacing=0.25)
+    print(f"Dense waypoints for math: {len(waypoints_dense)}")
+
+    # Shift both sets of waypoints to world (cell-center) coordinates
+    waypoints_world_sparse = [(x + 0.5, y + 0.5) for x, y in waypoints_sparse]
+    waypoints_world_dense = [(x + 0.5, y + 0.5) for x, y in waypoints_dense]
+
+    # Generate the distance field 
     df = compute_distance_field(env)
-    bubbles = compute_bubbles(waypoints_world, env)
     
-    q = np.asarray(waypoints_world, dtype=float)
-    P_opt = optimize_path(q, bubbles, lambda_reg=1.0, d_max=1.5)
+    # Calculate bubbles for both sets
+    bubbles_sparse = compute_bubbles(waypoints_world_sparse, env)
+    bubbles_dense = compute_bubbles(waypoints_world_dense, env)
 
-    print("\n--- Safety Bubbles ---")
-    for i, (cx, cy, r) in enumerate(bubbles):
-        print(f"Waypoint {i} at ({cx}, {cy}) -> Radius: {r:.2f}")
+    # --- OPTIMIZE USING ONLY DENSE DATA ---
+    q_dense = np.asarray(waypoints_world_dense, dtype=float)
+    
+    # lambda_reg=0.0 allows the path to pull tight like a rubber band!
+    P_opt = optimize_path(q_dense, bubbles_dense, lambda_reg=0.0, d_max=1.5)
 
-    # Diagnostic: check a specific waypoint against the grid
+    print("\n--- Safety Bubbles (Dense) ---")
+    for i, (cx, cy, r) in enumerate(bubbles_dense):
+        if i < 5: # Only print first few to avoid console spam
+            print(f"Dense Waypoint {i} at ({cx:.2f}, {cy:.2f}) -> Radius: {r:.2f}")
+
+    # Diagnostic: check a specific dense waypoint against the grid
     print("\n--- Bubble Diagnostic ---")
     print(f"Distance field shape: {df.shape}")
     print(f"Grid shape: {env.occupancy_grid.shape}")
 
-    # Check the first few waypoints
-    for i, ((wx, wy), (bx, by, br)) in enumerate(zip(waypoints_world, bubbles)):
-        # Sample the raw distance field at this waypoint
-        
+    for i, ((wx, wy), (bx, by, br)) in enumerate(zip(waypoints_world_dense, bubbles_dense)):
         raw_dist = map_coordinates(df, np.array([[wy], [wx]]), order=1, mode='nearest')[0]
         
-        # Find the nearest obstacle cell by brute force
         obs_ys, obs_xs = np.where(env.occupancy_grid)
         if len(obs_xs) > 0:
-            # Distance from waypoint to obstacle cell CENTERS
             dists_to_centers = np.sqrt((obs_xs + 0.5 - wx)**2 + (obs_ys + 0.5 - wy)**2)
-            # Distance from waypoint to obstacle cell EDGES (closest point on cell square)
             dx = np.maximum(0, np.abs(wx - (obs_xs + 0.5)) - 0.5)
             dy = np.maximum(0, np.abs(wy - (obs_ys + 0.5)) - 0.5)
             dists_to_edges = np.sqrt(dx**2 + dy**2)
             
-            print(f"WP {i}: world=({wx:.2f},{wy:.2f}) "
-                f"df_sample={raw_dist:.3f} "
-                f"true_center_dist={dists_to_centers.min():.3f} "
-                f"true_edge_dist={dists_to_edges.min():.3f} "
-                f"bubble_r={br:.3f}")
+            print(f"Dense WP {i}: world=({wx:.2f},{wy:.2f}) "
+                  f"df_sample={raw_dist:.3f} "
+                  f"true_center_dist={dists_to_centers.min():.3f} "
+                  f"true_edge_dist={dists_to_edges.min():.3f} "
+                  f"bubble_r={br:.3f}")
         
-        if i >= 5:
+        if i >= 4:
             break
 
+    # --- OPTIMIZE USING ONLY DENSE DATA ---
+    q_dense = np.asarray(waypoints_world_dense, dtype=float)
+    
+    # lambda_reg=0.0 allows the path to pull tight like a rubber band!
+    P_opt = optimize_path(q_dense, bubbles_dense, lambda_reg=0.0, d_max=1.5)
+
+    # --- CALCULATE AND PRINT PATH LENGTHS ---
+    astar_length = calculate_path_length(path)
+    opt_length = calculate_path_length(P_opt)
+    
+    print("\n--- Path Length Comparison ---")
+    print(f"Original A* Length: {astar_length:.2f} units")
+    print(f"Optimized Length:   {opt_length:.2f} units")
+    print(f"Distance Saved:     {astar_length - opt_length:.2f} units")
+
+    # --- VISUALIZATION ---
     viz = EnvironmentVisualizer(env)
 
     if path:
         viz.draw_astar_path(path)
-        viz.draw_waypoints(waypoints_dense)
-        viz.draw_bubbles(bubbles)
+        
+        # Visualize the sparse data to keep the plot looking clean!
+        viz.draw_waypoints(waypoints_sparse)
+        viz.draw_bubbles(bubbles_sparse)
+        
+        # Draw the final smooth path optimized entirely on the dense data
         viz.draw_optimized_path(P_opt)
+        
     viz.show()
 
-
-    
 if __name__ == "__main__":
     main()
