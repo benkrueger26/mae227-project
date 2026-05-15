@@ -1,101 +1,167 @@
 # Motion Planning Pipeline
 
-A 2D motion planning pipeline that takes a robot from a start cell to a goal cell in a grid world with rectangular obstacles. Combines discrete A\* search with convex trajectory optimization to produce smooth, provably collision-free paths.
+A 2D motion planning pipeline that takes a robot from a start cell to a goal cell in a grid world with rectangular obstacles. Combines discrete A\* search with convex trajectory optimization (SOCP) to produce smooth, provably collision-free paths.
 
-## Pipeline overview
+Two complete pipelines are implemented:
 
-The pipeline runs in four stages:
+| Pipeline | Entry point | Approach |
+|---|---|---|
+| **Bubble** | `test_environment.py` | Safety circles around each waypoint |
+| **Corridor** | `test_corridor.py` | Safe rectangular corridor along the full path |
+
+---
+
+## How it works
+
+### Bubble pipeline (`test_environment.py`)
 
 1. **A\* search** — finds a discrete shortest path on an 8-connected grid.
-2. **Waypoint conditioning** — downsamples collinear runs from the A\* output, then resamples to a chosen spacing.
-3. **Bubbles** — computes a circular safety region around each waypoint using exact point-to-rectangle distance, forming a continuous safety tube along the path.
-4. **Convex optimization** — a Second-Order Cone Program (SOCP) re-positions the waypoints to minimize acceleration while staying inside the safety tube.
+2. **Waypoint conditioning** — downsamples collinear runs, then resamples to a dense uniform spacing.
+3. **Safety bubbles** — computes a circular safe region around each waypoint using exact point-to-rectangle distance. Together the circles form a continuous collision-free tube.
+4. **SOCP optimization** — re-positions the waypoints to minimize path acceleration (smoothness) while keeping every point inside its bubble. With `lambda_reg=0` the path pulls taut like a rubber band inside the tube.
+
+### Corridor pipeline (`test_corridor.py`)
+
+1. **Obstacle inflation** — every obstacle is grown outward by `robot_radius` (Minkowski sum). Planning the robot's center point against the inflated obstacles is equivalent to planning the full disk body against the originals.
+2. **A\* on the inflated grid** — run with no-corner-cutting to ensure the discrete path is safe for a disk-shaped body.
+3. **Corridor construction** — one axis-aligned rectangular polytope is built per path segment, expanded outward into free space as far as possible. Consecutive polytopes overlap, forming a continuous tube.
+4. **SOCP optimization** — minimizes path length plus a smoothness penalty, subject to each optimizer point staying inside its assigned corridor rectangle. The path actively cuts corners wherever the corridor allows.
+
+---
 
 ## Project structure
 
 ```
 .
 ├── src/
-│   ├── environment.py      # GridEnvironment + RectObstacle classes
-│   ├── astar.py            # A* search and waypoint conditioning utilities
-│   ├── bubbles.py          # Safety bubble computation
-│   ├── optimizer.py        # SOCP trajectory smoother (CVXPY)
-│   └── visualize.py        # Matplotlib visualization with toggleable layers
-├── test_environment.py     # End-to-end demo / entry point
+│   ├── environment.py        # GridEnvironment + RectObstacle classes
+│   ├── astar.py              # A* search, downsample_collinear, resample_by_spacing
+│   ├── bubbles.py            # Distance field + safety bubble computation
+│   ├── optimizer.py          # Bubble-constrained SOCP smoother (CVXPY)
+│   ├── corridor.py           # Obstacle inflation, corridor construction, region assignment
+│   ├── corridor_optimizer.py # Corridor-constrained SOCP optimizer (CVXPY)
+│   └── visualize.py          # Matplotlib visualizer with toggleable layers
+├── test_environment.py       # Bubble pipeline demo
+├── test_corridor.py          # Corridor pipeline demo
 └── README.md
 ```
 
+---
+
 ## Requirements
 
-- Python 3.9+
+- Python 3.10+
 - NumPy
 - SciPy
 - Matplotlib
-- CVXPY
-- Clarabel (SOCP solver, installed automatically with CVXPY)
+- CVXPY + Clarabel (SOCP solver, installed automatically with CVXPY)
+
+---
 
 ## Setup
 
-Clone the repo and install dependencies:
-
 ```bash
-git clone https://github.com/<your-username>/<your-repo>.git
-cd <your-repo>
-pip install numpy scipy matplotlib cvxpy clarabel
+git clone https://github.com/benkrueger26/mae227-project.git
+cd mae227-project
+pip install numpy scipy matplotlib cvxpy
 ```
 
-Optionally use a virtual environment first:
+Using a virtual environment:
 
 ```bash
 python -m venv venv
-source venv/bin/activate    # on Windows: venv\Scripts\activate
-pip install numpy scipy matplotlib cvxpy clarabel
+source venv/bin/activate       # Windows: venv\Scripts\activate
+pip install numpy scipy matplotlib cvxpy
 ```
 
-## Running the demo
+---
+
+## Running the demos
 
 From the repo root:
 
 ```bash
+# Bubble pipeline
 python test_environment.py
+
+# Corridor pipeline
+python test_corridor.py
 ```
 
-This will:
-
+Both scripts will:
 1. Build a 20×20 grid world with several rectangular obstacles.
-2. Print an ASCII view of the grid (start = `S`, goal = `G`, obstacles = `#`).
-3. Run A\* and print path statistics at each conditioning stage.
-4. Print diagnostic info comparing bubble radii against brute-force ground-truth distances.
-5. Solve the SOCP optimization.
-6. Print a path-length comparison between the raw A\* path and the optimized path.
-7. Open a Matplotlib window showing the result.
+2. Print an ASCII map (`S` = start, `G` = goal, `#` = obstacle).
+3. Run A\* and print path statistics.
+4. Solve the SOCP and print path length before and after optimization.
+5. Open a Matplotlib window with all planning layers.
+
+---
 
 ## Visualization
 
-The Matplotlib window has a checkbox panel on the right that lets you toggle individual layers on and off:
+The Matplotlib window has a checkbox panel that toggles individual layers on/off:
 
-- **Obstacles** — the rasterized grid
-- **Start/Goal** — green circle and red star
-- **Gridlines** — minor cell boundaries
-- **A\* Path** — raw A\* output (blue)
-- **Waypoints** — sparse waypoints used for visualization (orange)
-- **Bubbles** — safety circles (cyan)
-- **Optimized Path** — final smoothed trajectory (magenta)
+| Layer | Description |
+|---|---|
+| Obstacles | Rasterized occupancy grid |
+| Inflated Obstacles | Robot-radius-grown obstacles (corridor pipeline) |
+| Start / Goal | Green circle (S) and red star (G) |
+| Gridlines | Minor cell boundary lines |
+| A\* Path | Raw discrete A\* output (blue) |
+| Waypoints | Sparse corner waypoints (orange) |
+| Bubbles | Safety circles (cyan) — bubble pipeline |
+| Corridor | Safe rectangular regions (green) — corridor pipeline |
+| Optimized Path | Final smoothed trajectory (magenta) |
+| Robot Disks | Robot body at sampled positions — verifies no collision |
+
+---
 
 ## Customizing the scene
 
-Open `test_environment.py` and edit the `main()` function:
+Edit the `main()` function in either test file:
 
-- **Grid size** — change `GridEnvironment(width=20, height=20)`.
-- **Obstacles** — add or remove `env.add_obstacle(RectObstacle(...))` calls. Each rectangle is specified by its bottom-left corner, width, and height.
-- **Start / goal** — `env.set_start(x, y)` and `env.set_goal(x, y)`. Use `(i + 0.5, j + 0.5)` to target the center of cell `(i, j)`.
-- **Optimizer behavior** — in the call to `optimize_path(...)`:
-  - `lambda_reg` controls how tightly the optimized path follows the A\* reference. `lambda_reg=0.0` lets the path pull taut like a rubber band; larger values keep it close to A\*.
-  - `d_max` caps the distance between consecutive optimized points.
-- **Waypoint density** — `resample_by_spacing(waypoints, max_spacing=0.25)` controls how dense the optimization input is. Tighter spacing means more, smaller bubbles but a smoother result.
+**Grid and obstacles**
+```python
+env = GridEnvironment(width=20, height=20)
+env.add_obstacle(RectObstacle(x_start=2, y_start=0, width=2, height=5))
+```
+Each `RectObstacle` is specified by its bottom-left corner `(x_start, y_start)`, `width`, and `height` in world units.
 
-## Notes
+**Start and goal**
+```python
+env.set_start(0.5, 1.5)   # center of cell (0, 1)
+env.set_goal(19.5, 17.5)  # center of cell (19, 17)
+```
+Use `(i + 0.5, j + 0.5)` to target the center of cell `(i, j)`.
 
-- Coordinates: the grid uses integer cell indices internally, but waypoints, bubbles, and the optimizer all work in continuous world coordinates. The `+0.5` offset in `test_environment.py` shifts cell indices to cell centers.
-- The optimizer is convex, so the solver finds the global optimum on every run — no initialization sensitivity, no local minima.
-- The bubbles guarantee safety only at the waypoints themselves; the `d_max` constraint is what keeps the line *segments* between consecutive points inside the safety tube as well.
+**Bubble pipeline tuning**
+```python
+waypoints_dense = resample_by_spacing(waypoints, max_spacing=0.25)  # point density
+P_opt = optimize_path(q, bubbles, lambda_reg=0.0, d_max=1.5)
+```
+- `max_spacing` — smaller = more optimizer points = smoother result
+- `lambda_reg` — `0.0` = pure rubber-band; larger = path stays closer to A\*
+- `d_max` — caps step length between consecutive points; prevents bunching
+
+**Corridor pipeline tuning**
+```python
+robot_radius     = 0.3   # disk body radius
+desired_spacing  = 0.5   # target spacing between optimizer points
+smoothness_weight = 0.5  # 0 = pure length minimization, higher = rounder corners
+d_max            = 2.0   # step-length cap (None to disable)
+```
+
+---
+
+## Key concepts
+
+**Why SOCP?**
+All constraints (bubble radii, step distances, corridor rectangles) are either linear or second-order cone constraints. CVXPY recognizes this and passes the problem to the CLARABEL solver, which finds the provably global optimum — no local minima, no sensitivity to initialization.
+
+**Coordinate convention**
+Integer cell `(i, j)` occupies the unit square from `(i, j)` to `(i+1, j+1)`. Its center is at `(i+0.5, j+0.5)`. Waypoints, bubbles, the corridor, and the optimizer all work in continuous world coordinates.
+
+**Safety guarantee**
+For the bubble pipeline: the bubble radius at each waypoint equals the true distance to the nearest obstacle minus a safety margin. Any point inside the bubble is collision-free. The `d_max` constraint ensures that the path segments between bubbles also stay within the tube.
+
+For the corridor pipeline: every optimizer point is constrained to a rectangle that was constructed to be entirely in free space (after obstacle inflation). The robot body is safe everywhere along the path by construction.
