@@ -1,3 +1,28 @@
+"""
+test_environment.py — Bubble-based SOCP motion planning pipeline (main demo).
+
+Full pipeline:
+  1. Build a 20x20 grid environment with obstacles, start (bottom-left),
+     and goal (upper-right).
+  2. Run A* (8-connected) to find a discrete shortest path.
+  3. Downsample collinear cells to keep only direction-change corners.
+  4. Resample at two densities:
+       sparse (max_spacing=1.5) — for clean visualization (fewer plotted dots)
+       dense  (max_spacing=0.25) — for the SOCP (more variables → smoother curve)
+  5. Convert integer cell indices to world coordinates (+0.5 for cell centers).
+  6. Compute a safety bubble for each dense waypoint: radius = distance to
+     nearest obstacle surface minus safety_margin.
+  7. Run the SOCP optimizer with lambda_reg=0 (pure rubber-band smoothing):
+     find the smoothest polyline whose points each stay inside their bubble.
+  8. Compare path lengths and visualize all layers with toggleable checkboxes.
+
+Key tuning knobs:
+  max_spacing in resample_by_spacing — controls optimizer point density
+  lambda_reg  in optimize_path       — 0 = pure smoothing, high = close to A*
+  d_max       in optimize_path       — step-length cap to prevent point bunching
+  safety_margin in compute_bubbles   — clearance buffer between bubble and obstacle
+"""
+
 from src.environment import GridEnvironment, RectObstacle
 from src.visualize import EnvironmentVisualizer
 from src.astar import astar_search, downsample_collinear, resample_by_spacing
